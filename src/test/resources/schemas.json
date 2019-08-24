@@ -24,7 +24,10 @@
       ],
       "properties": {
         "geoCode": {
-          "$ref": "#/definitions/GeoCode"
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/GeoCode"
+          }
         }
       }
     }

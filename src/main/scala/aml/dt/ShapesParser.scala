@@ -67,7 +67,13 @@ class ShapesParser(dialectUnit: BaseUnit) {
       propertyMapping.minCount().option().foreach(propertyShape.withMinCount)
       propertyMapping.literalRange().option().foreach { dataType =>
         val scalar = ScalarShape().withDataType(dataType)
-        propertyShape.withRange(scalar)
+        if (propertyMapping.allowMultiple().option().getOrElse(false)) {
+          c += 1
+          val array = ArrayShape().withId(s"http://aml2dt.com/autogen${c}").withName(s"Array${shape.name.value()}").withItems(scalar)
+          propertyShape.withRange(array)
+        } else {
+          propertyShape.withRange(scalar)
+        }
       }
 
       val objectRangeIds = propertyMapping.objectRange().collect { case range if range.option().isDefined => range.value() }
