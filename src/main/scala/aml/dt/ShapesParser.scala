@@ -1,5 +1,6 @@
 package aml.dt
 
+import amf.core.annotations.DeclaredElement
 import amf.core.model.document.{BaseUnit, Module}
 import amf.core.model.domain.Shape
 import amf.core.model.domain.extensions.PropertyShape
@@ -24,7 +25,7 @@ class ShapesParser(dialectUnit: BaseUnit) {
     declarations.foreach(parseNodeMappingWithoutProperties)
     declarations.foreach(parseNodeMappingProperties)
 
-    module.withDeclares(declarations)
+    module.withDeclares(nodeMap.values.toSeq)
   }
 
   protected def collectUnits: Seq[NodeMapping] = {
@@ -43,6 +44,8 @@ class ShapesParser(dialectUnit: BaseUnit) {
   protected def parseNodeMappingWithoutProperties(nodeMapping: NodeMapping): NodeShape = {
     val shape = NodeShape().withId(nodeMapping.id)
 
+    shape.annotations += DeclaredElement()
+
     nodeMapping.name.option() match {
       case Some(name) => shape.withName(name)
       case _          => // ignore
@@ -52,7 +55,7 @@ class ShapesParser(dialectUnit: BaseUnit) {
     shape
   }
 
-  def parseNodeMappingProperties(nodeMapping: NodeMapping): Shape = {
+  protected def parseNodeMappingProperties(nodeMapping: NodeMapping): Shape = {
     val shape = nodeMap(nodeMapping.id)
 
     val propertyShapes = nodeMapping.propertiesMapping() map { propertyMapping =>

@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "oneOf": [
+    {
+      "$ref": "#/definitions/GeoCode"
+    },
+    {
+      "$ref": "#/definitions/Place"
+    }
+  ],
+  "definitions": {
+    "GeoCode": {
+      "type": "object",
+      "properties": {
+        "icaoCode": {
+          "type": "string"
+        }
+      }
+    },
+    "Place": {
+      "type": "object",
+      "required": [
+        "geoCode"
+      ],
+      "properties": {
+        "geoCode": {
+          "$ref": "#/definitions/GeoCode"
+        }
+      }
+    }
+  }
+}
