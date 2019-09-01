@@ -1,6 +1,8 @@
 package aml.dt
 
-import amf.core.annotations.DeclaredElement
+import java.nio.file.Paths
+
+import amf.core.annotations.{Aliases, DeclaredElement}
 import amf.core.model.document.{BaseUnit, Module}
 import amf.core.model.domain.Shape
 import amf.core.model.domain.extensions.PropertyShape
@@ -10,13 +12,29 @@ import amf.plugins.domain.shapes.models.{ArrayShape, NodeShape, ScalarShape, Uni
 
 import scala.collection.mutable
 
-
 class ShapesParser(dialectUnit: BaseUnit) {
 
+  case class ForeignLink(source: NodeShape, alias: String, foreignMapping: NodeMapping)
+
   protected val nodeMap: mutable.Map[String, NodeShape] = mutable.Map()
+  protected val foreignLinks: mutable.ListBuffer[ForeignLink] = mutable.ListBuffer()
   protected var c: Int = 0
 
-  def generate(location: String, id: Option[String], usage: Option[String]): Module = {
+  def generateRamlForeignLinks() = {
+    foreignLinks.foreach { case ForeignLink(source, alias, foreignMapping) =>
+        source.withLinkLabel(s"${alias}.${foreignMapping.name.value()}")
+    }
+  }
+
+  def generateJsonSchemaLinks() = {
+    foreignLinks.foreach { case ForeignLink(source, _, foreignMapping) =>
+      val path = foreignMapping.id.split("#").last.replace("declarations", "definitions")
+      val label = relativePaths(source.id.split("#").head, foreignMapping.id.split("#").head).replace(".yaml", ".json") + "#" + path
+      source.withLinkLabel(label)
+    }
+  }
+
+  def generate(location: String, id: Option[String], usage: Option[String], referenced: Boolean = false): Module = {
     val moduleId = id.getOrElse("http://aml2dt.com/Module")
     val module = Module().withLocation(location).withId(moduleId)
     usage.foreach(module.withUsage)
@@ -26,6 +44,17 @@ class ShapesParser(dialectUnit: BaseUnit) {
     declarations.foreach(parseNodeMappingProperties)
 
     module.withDeclares(nodeMap.values.toSeq)
+
+    dialectUnit.annotations.find(classOf[Aliases]) map { aliases =>
+        module.annotations += aliases
+    }
+
+    if (!referenced) {
+      val references = dialectUnit.references.map(d => new ShapesParser(d).generate(d.location().get, Some(d.id), d.usage.option(), true))
+      module.withReferences(references)
+    }
+
+    module
   }
 
   protected def collectUnits: Seq[NodeMapping] = {
@@ -77,9 +106,42 @@ class ShapesParser(dialectUnit: BaseUnit) {
       }
 
       val objectRangeIds = propertyMapping.objectRange().collect { case range if range.option().isDefined => range.value() }
-      val objectRanges = objectRangeIds.map { id =>
-        val targetShape = nodeMap(id)
-        targetShape.link(targetShape.name.value()).asInstanceOf[Shape]
+      val objectRanges: Seq[Shape] = objectRangeIds.map { id =>
+        val fallbackShape: Shape  = NodeShape().withId(id).link(id)
+        nodeMap.get(id) match {
+          case Some(targetShape) => targetShape.link(targetShape.name.value()).asInstanceOf[Shape]
+          case _                 => {
+            // foreign link
+            val maybeForeignDialect = dialectUnit.references.find { case ref: Dialect =>
+              ref.declares.exists(_.id == id)
+            }
+            val maybeForeignShape = maybeForeignDialect.flatMap { case dialect:Dialect =>
+              dialect.declares.find(_.id == id)
+            }
+
+            (maybeForeignDialect, maybeForeignShape) match {
+              case (Some(foreignDialect: Dialect), Some(foreignShape: NodeMapping)) =>
+                dialectUnit.annotations.find(classOf[Aliases]) map { aliases: Aliases =>
+                  val maybeAlias = aliases.aliases.find { case (alias, (fullUrl, _)) =>
+                      fullUrl == foreignDialect.id
+                  }
+                  val s:Shape = maybeAlias match {
+                    case Some((alias, _)) =>
+                      val foreignNode: NodeShape = NodeShape().withId(id).link(s"${alias}.${foreignShape.name.value()}")
+                      foreignLinks += ForeignLink(foreignNode, alias, foreignShape)
+                      foreignNode
+                    case _              =>
+                      fallbackShape
+                  }
+                  s
+                } getOrElse(fallbackShape)
+
+              case _ =>
+                fallbackShape
+            }
+          }
+        }
+
       }
 
       val objRange = if (objectRanges.length == 1) {
@@ -103,6 +165,10 @@ class ShapesParser(dialectUnit: BaseUnit) {
     }
 
     shape.withProperties(propertyShapes)
+  }
+
+  protected def relativePaths(from: String, to: String): String = {
+    Paths.get(from).getParent.relativize(Paths.get(to)).toString
   }
 
 

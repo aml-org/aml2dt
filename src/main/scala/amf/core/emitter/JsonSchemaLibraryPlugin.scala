@@ -1,34 +1,16 @@
 package amf.core.emitter
 
 import amf.core.model.document.{BaseUnit, Module}
-import amf.core.model.domain.{DomainElement, Linkable}
 import amf.core.parser.{ErrorHandler, Position}
 import amf.plugins.document.webapi.JsonSchemaPlugin
-import amf.plugins.document.webapi.contexts.{JsonSchemaEmitterContext, Oas2SpecEmitterContext, Oas2SpecEmitterFactory, OasSpecEmitterFactory}
-import amf.plugins.document.webapi.parser.{JsonSchemaTypeDefMatcher, OasTypeDefStringValueMatcher}
+import amf.plugins.document.webapi.contexts.JsonSchemaEmitterContext
 import amf.plugins.document.webapi.parser.spec.OasDefinitions
-import amf.plugins.document.webapi.parser.spec.common.{JsonSchemaEmitter, JsonSchemaEntry}
+import amf.plugins.document.webapi.parser.spec.common.JsonSchemaEntry
 import amf.plugins.document.webapi.parser.spec.oas.OasDeclarationsEmitter
 import amf.plugins.domain.shapes.models.AnyShape
 import org.yaml.model.YDocument
 import org.yaml.model.YDocument.EntryBuilder
 
-/*
-
-
-final case class JsonLibrarySchemaEmitterContext(override val eh: ErrorHandler) extends Oas2SpecEmitterContext(eh = eh) {
-  override val typeDefMatcher: OasTypeDefStringValueMatcher = JsonSchemaTypeDefMatcher
-  override val anyOfKey: String = "anyOf"
-
-  override def schemasDeclarationsPath: String = "/definitions/"
-
-  override def localReference(reference: Linkable): PartEmitter = {
-    val label = reference.linkLabel.option.map(OasDefinitions.appendDefinitionsPrefix)
-    factory.tagToReferenceEmitter(reference.asInstanceOf[DomainElement], label, Nil)
-  }
-
-}
-*/
 
 case class JsonSchemaEmitterLibrary(shapes: Seq[AnyShape], ordering: SpecOrdering = SpecOrdering.Lexical, eh: ErrorHandler) {
   def emitDocument(): YDocument = {
