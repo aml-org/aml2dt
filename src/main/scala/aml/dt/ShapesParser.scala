@@ -20,12 +20,18 @@ class ShapesParser(dialectUnit: BaseUnit) {
   protected val foreignLinks: mutable.ListBuffer[ForeignLink] = mutable.ListBuffer()
   protected var c: Int = 0
 
+  /**
+   * Set correctly the alias of a foreign link when generating a RAML datatype
+   */
   def generateRamlForeignLinks() = {
     foreignLinks.foreach { case ForeignLink(source, alias, foreignMapping) =>
         source.withLinkLabel(s"${alias}.${foreignMapping.name.value()}")
     }
   }
 
+  /**
+   * Set correctly the $ref of a foreign link when generating a JSON-Schema
+   */
   def generateJsonSchemaLinks() = {
     foreignLinks.foreach { case ForeignLink(source, _, foreignMapping) =>
       val path = foreignMapping.id.split("#").last.replace("declarations", "definitions")
@@ -34,6 +40,14 @@ class ShapesParser(dialectUnit: BaseUnit) {
     }
   }
 
+  /**
+   * Main entry point to trigger the generation of RAML datatypes and JSON schemas in the CIM directory
+   * @param location
+   * @param id
+   * @param usage
+   * @param referenced
+   * @return
+   */
   def generate(location: String, id: Option[String], usage: Option[String], referenced: Boolean = false): Module = {
     val moduleId = id.getOrElse("http://aml2dt.com/Module")
     val module = Module().withLocation(location).withId(moduleId)
@@ -127,7 +141,7 @@ class ShapesParser(dialectUnit: BaseUnit) {
                   }
                   val s:Shape = maybeAlias match {
                     case Some((alias, _)) =>
-                      val foreignNode: NodeShape = NodeShape().withId(id).link(s"${alias}.${foreignShape.name.value()}")
+                      val foreignNode: NodeShape = NodeShape().withId(id).link(foreignShape.id) // temporary id, will be replaced later using the stored link
                       foreignLinks += ForeignLink(foreignNode, alias, foreignShape)
                       foreignNode
                     case _              =>

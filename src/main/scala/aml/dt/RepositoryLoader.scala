@@ -19,6 +19,7 @@ import aml.dt.Generator
 import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
+import scala.util.{Failure, Success}
 
 object RepositoryLoader extends PlatformSecrets {
 
@@ -45,29 +46,31 @@ object RepositoryLoader extends PlatformSecrets {
     var files = Files.walk(Paths.get(path)).iterator().asScala
     val schemaFiles = files.filter(f => f.endsWith("schema.yaml"))
     files = Files.walk(Paths.get(path)).iterator().asScala
-    schemaFiles.foreach { f =>
-      try {
-        processSchemaFile(f)
-      } catch {
-        case e: Exception => {
-          println(s"${f} failed!!! ${e.getMessage}")
-        }
+    val futures = schemaFiles.map { f =>
+      processSchemaFile(f).map { _ =>
+        println(s"*** Processed ${f}")
+      } recover {
+        case e: Exception =>
+          println(s"failed!!! ${e.getMessage}")
       }
-
     }
+
+    Future.sequence(futures)
   }
 
   protected def processSchemaFile(f: Path) = {
     println(s"*** Loading schema file ${f.toFile.getAbsolutePath}")
 
-    val dialect = Await.result(loadDialect("file://" + f.toFile.getAbsolutePath), Duration.Inf).asInstanceOf[Dialect]
-    val generatedRaml = new Generator(dialect).generate("RAML 1.0")
-    val generatedJson = new Generator(dialect).generate("JSON-Schema")
+    loadDialect("file://" + f.toFile.getAbsolutePath) map { case dialect: Dialect =>
+      val generatedRaml = new Generator(dialect).generate("RAML 1.0")
+      val generatedJson = new Generator(dialect).generate("JSON-Schema")
 
-    var targetPath = f.toFile.getAbsolutePath.replace("schema.yaml", "schema.raml")
-    writeFile(targetPath, generatedRaml)
-    targetPath = f.toFile.getAbsolutePath.replace("schema.yaml", "schema.json")
-    writeFile(targetPath, generatedJson)
+      var targetPath = f.toFile.getAbsolutePath.replace("schema.yaml", "schema.raml")
+      writeFile(targetPath, generatedRaml)
+      targetPath = f.toFile.getAbsolutePath.replace("schema.yaml", "schema.json")
+      writeFile(targetPath, generatedJson)
+    }
+    //val dialect = Await.result(, Duration.Inf).asInstanceOf[Dialect]
   }
 
   protected def writeFile(filename: String, text: String) = {
@@ -77,14 +80,15 @@ object RepositoryLoader extends PlatformSecrets {
     bw.close()
   }
 
-  def main(args: Array[String]) = {
+  def main(args: Array[String]): Unit = {
     if (args.length != 1) {
       println("Path to a directory containing CIM files must be provided as an argument")
       System.exit(1)
     }
     val path = args(0)
     println(s"\n\nProcessing directory $path\n\n")
-    fromDirectory(path)
+    val result = fromDirectory(path)
+    Await.result(result, Duration.Inf)
   }
 
 }
