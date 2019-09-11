@@ -3,8 +3,9 @@ package aml.dt
 import java.nio.file.Paths
 
 import amf.core.annotations.{Aliases, DeclaredElement}
+import amf.core.model.AnyField
 import amf.core.model.document.{BaseUnit, Module}
-import amf.core.model.domain.Shape
+import amf.core.model.domain.{ScalarNode, Shape}
 import amf.core.model.domain.extensions.PropertyShape
 import amf.plugins.document.vocabularies.model.document.{Dialect, DialectFragment, DialectLibrary}
 import amf.plugins.document.vocabularies.model.domain.NodeMapping
@@ -101,6 +102,13 @@ class ShapesParser(dialectUnit: BaseUnit) {
   protected def parseNodeMappingProperties(nodeMapping: NodeMapping): Shape = {
     val shape = nodeMap(nodeMapping.id)
 
+    nodeMapping.extend.headOption match {
+      case Some(baseShape: NodeMapping) =>
+        val targetShape = nodeMap(baseShape.linkTarget.get.id)
+        shape.withInherits(Seq(targetShape.link(targetShape.name.value()).asInstanceOf[Shape].withName(targetShape.name.value())))
+      case _               => // ignore
+    }
+
     val propertyShapes = nodeMapping.propertiesMapping() map { propertyMapping =>
       val propertyShape = PropertyShape().withId(propertyMapping.id)
       propertyMapping.name().option() match {
@@ -173,6 +181,13 @@ class ShapesParser(dialectUnit: BaseUnit) {
         } else {
           propertyShape.withRange(shape)
         }
+      }
+
+      if (propertyMapping.enum().nonEmpty) {
+        val values = propertyMapping.enum().map { v: AnyField =>
+          ScalarNode().withValue(v.value().toString)
+        }
+       propertyShape.range.withValues(values)
       }
 
       propertyShape
