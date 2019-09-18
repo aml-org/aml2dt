@@ -7,6 +7,7 @@ import amf.core.model.AnyField
 import amf.core.model.document.{BaseUnit, Module}
 import amf.core.model.domain.{ScalarNode, Shape}
 import amf.core.model.domain.extensions.PropertyShape
+import amf.core.vocabulary.Namespace
 import amf.plugins.document.vocabularies.model.document.{Dialect, DialectFragment, DialectLibrary}
 import amf.plugins.document.vocabularies.model.domain.NodeMapping
 import amf.plugins.domain.shapes.models.{ArrayShape, NodeShape, ScalarShape, UnionShape}
@@ -117,7 +118,12 @@ class ShapesParser(dialectUnit: BaseUnit) {
       }
       propertyMapping.minCount().option().foreach(propertyShape.withMinCount)
       propertyMapping.literalRange().option().foreach { dataType =>
-        val scalar = ScalarShape().withDataType(dataType)
+        val scalar = ScalarShape()
+        if (dataType == (Namespace.Shapes + "guid").iri()) {
+          scalar.withDataType((Namespace.Xsd + "string").iri())
+        } else {
+          scalar.withDataType(dataType)
+        }
         if (propertyMapping.allowMultiple().option().getOrElse(false)) {
           c += 1
           val array = ArrayShape().withId(s"http://aml2dt.com/autogen${c}").withName(s"Array${shape.name.value()}").withItems(scalar)
