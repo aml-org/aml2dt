@@ -66,7 +66,7 @@ class ShapesParser(dialectUnit: BaseUnit) {
     }
 
     if (!referenced) {
-      val references = dialectUnit.references.map(d => new ShapesParser(d).generate(d.location().get, Some(d.id), d.usage.option(), true))
+      val references = dialectUnit.references.collect{ case d: Dialect => d  }.map(d => new ShapesParser(d).generate(d.location().get, Some(d.id), d.usage.option(), true))
       module.withReferences(references)
     }
 
@@ -79,6 +79,7 @@ class ShapesParser(dialectUnit: BaseUnit) {
         Option(d.encodes).map(Seq(_)).getOrElse(Nil) ++ d.declares
       case d: DialectLibrary =>
         d.declares
+      case _ => Nil
       case d: DialectFragment =>
         Option(d.encodes).map(Seq(_)).getOrElse(Nil)
     }
@@ -140,11 +141,13 @@ class ShapesParser(dialectUnit: BaseUnit) {
           case Some(targetShape) => targetShape.link(targetShape.name.value()).asInstanceOf[Shape]
           case _                 => {
             // foreign link
-            val maybeForeignDialect = dialectUnit.references.find { case ref: Dialect =>
-              ref.declares.exists(_.id == id)
+            val maybeForeignDialect = dialectUnit.references.find {
+              case ref: Dialect => ref.declares.exists(_.id == id)
+              case _            => false
             }
-            val maybeForeignShape = maybeForeignDialect.flatMap { case dialect:Dialect =>
-              dialect.declares.find(_.id == id)
+            val maybeForeignShape = maybeForeignDialect.flatMap {
+              case dialect:Dialect => dialect.declares.find(_.id == id)
+              case _               => None
             }
 
             (maybeForeignDialect, maybeForeignShape) match {
