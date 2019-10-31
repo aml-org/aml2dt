@@ -25,7 +25,7 @@ case class JsonSchemaEmitterLibrary(shapes: Seq[AnyShape], ordering: SpecOrderin
     override def emit(b: EntryBuilder): Unit =
       b.entry("oneOf", (e) => {
         e.list((l) => {
-          shapes.foreach { s =>
+          shapes.sortBy(_.name.value()).foreach { s =>
             l.obj((o) => {
               o.entry("$ref", OasDefinitions.appendDefinitionsPrefix(s.name.value()))
             })

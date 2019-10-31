@@ -106,8 +106,15 @@ class ShapesParser(dialectUnit: BaseUnit) {
 
     nodeMapping.extend.headOption match {
       case Some(baseShape: NodeMapping) =>
-        val targetShape = nodeMap(baseShape.linkTarget.get.id)
-        shape.withInherits(Seq(targetShape.link(targetShape.name.value()).asInstanceOf[Shape].withName(targetShape.name.value())))
+        try {
+          val targetShape = nodeMap(baseShape.linkTarget.get.id)
+          shape.withInherits(Seq(targetShape.link(targetShape.name.value()).asInstanceOf[Shape].withName(targetShape.name.value())))
+        } catch {
+          case e: Exception =>
+            println(e.getMessage)
+            println(baseShape.name)
+            println(nodeMapping.id)
+        }
       case _               => // ignore
     }
 
