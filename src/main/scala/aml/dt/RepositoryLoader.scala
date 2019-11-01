@@ -1,4 +1,4 @@
-package aml.cim
+package aml.dt
 
 import java.io.{BufferedWriter, File, FileWriter}
 import java.nio.file.{Files, Path, Paths}
@@ -13,7 +13,6 @@ import amf.plugins.document.vocabularies.AMLPlugin
 import amf.plugins.document.vocabularies.model.document.Dialect
 import amf.plugins.document.vocabularies.model.domain.NodeMapping
 import amf.plugins.document.webapi.{Oas20Plugin, Raml10Plugin}
-import aml.dt.Generator
 
 import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext.Implicits.global
