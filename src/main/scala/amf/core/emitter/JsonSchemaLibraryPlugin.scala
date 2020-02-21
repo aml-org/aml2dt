@@ -1,9 +1,10 @@
 package amf.core.emitter
 
+import amf.core.errorhandling.ErrorHandler
 import amf.core.model.document.{BaseUnit, Module}
-import amf.core.parser.{ErrorHandler, Position}
+import amf.core.parser.Position
 import amf.plugins.document.webapi.JsonSchemaPlugin
-import amf.plugins.document.webapi.contexts.JsonSchemaEmitterContext
+import amf.plugins.document.webapi.contexts.emitter.oas.JsonSchemaEmitterContext
 import amf.plugins.document.webapi.parser.spec.OasDefinitions
 import amf.plugins.document.webapi.parser.spec.common.JsonSchemaEntry
 import amf.plugins.document.webapi.parser.spec.oas.OasDeclarationsEmitter
@@ -54,7 +55,7 @@ class JsonSchemaLibraryPlugin extends JsonSchemaPlugin {
    */
   override def documentSyntaxes: Seq[String] = Seq("application/library+schema+json", "application/library+payload+json")
 
-  override protected def unparseAsYDocument(unit: BaseUnit, renderOptions: RenderOptions): Option[YDocument] = {
+  override protected def unparseAsYDocument(unit: BaseUnit, renderOptions: RenderOptions, shapeRenderOptions: ShapeRenderOptions = ShapeRenderOptions()): Option[YDocument] = {
     unit match {
       case module: Module =>
         val shapes = module.declares.collect{ case a: AnyShape => a }

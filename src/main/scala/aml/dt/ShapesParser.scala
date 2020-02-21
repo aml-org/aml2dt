@@ -124,7 +124,8 @@ class ShapesParser(dialectUnit: BaseUnit) {
         case Some(name) => propertyShape.withName(name)
         case _          => // ignore
       }
-      propertyMapping.minCount().option().foreach(propertyShape.withMinCount)
+      val minCount = propertyMapping.minCount().option().getOrElse(0)
+      propertyShape.withMinCount(minCount)
       propertyMapping.literalRange().option().foreach { dataType =>
         val scalar = ScalarShape()
         if (dataType == (Namespace.Shapes + "guid").iri()) {

@@ -26,7 +26,6 @@ trait Utils extends  PlatformSecrets {
         Some("application/yaml"),
         Some("AML 1.0"),
         Context(platform),
-        UnspecifiedReference,
         Cache())
     } yield {
      parsed

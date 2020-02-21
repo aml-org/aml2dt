@@ -1,6 +1,6 @@
 name := "aml2dt"
 organization := "com.github.amlorg"
-version := "0.1.1"
+version := "0.1.2"
 
 scalaVersion := "2.12.0"
 
@@ -13,6 +13,6 @@ credentials += Credentials("GitHub Package Registry","maven.pkg.github.com",
   sys.env.getOrElse("GITHUB_TOKEN", "")
 )
 
-libraryDependencies += "com.github.amlorg" %% "amf-client" % "3.5.4"
+libraryDependencies += "com.github.amlorg" %% "amf-client" % "4.0.4"
 libraryDependencies += "io.circe" %% "circe-parser" % "0.11.1"
 libraryDependencies +=  "org.scalatest" %% "scalatest" % "3.0.5" % Test
